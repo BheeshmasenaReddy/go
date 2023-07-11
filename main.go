@@ -2,14 +2,24 @@ package main
 
 import (
 	"fmt"
-	"strings"
+	"sync"
+	"time"
 )
 
 const conferenceTickets = 50
 
 var conferenceName = "Bheeshma's Conference"
 var remainingTickets uint = 50
-var bookings = []string{}
+var bookings = make([]userBookingData, 0)
+
+var wg = sync.WaitGroup{}
+
+type userBookingData struct {
+	firstName     string
+	lastName      string
+	email         string
+	ticketsBooked uint
+}
 
 func main() {
 
@@ -24,6 +34,10 @@ func main() {
 		if isValidName && isValiEmail && isValidTickets {
 
 			bookTicket(firstName, lastName, email, tickets)
+
+			wg.Add(1)
+			go sendTicket(firstName, email, tickets)
+
 			var firstNames = getFirstNames()
 
 			fmt.Printf("The remaining number of tickets are: %v\n", remainingTickets)
@@ -55,6 +69,7 @@ func main() {
 		}
 
 	}
+	wg.Wait()
 }
 
 func greetUser() {
@@ -85,16 +100,32 @@ func getUserInput() (string, string, string, uint) {
 }
 
 func bookTicket(firstName string, lastName string, email string, tickets uint) {
-	bookings = append(bookings, firstName+" "+lastName)
+	var userData = userBookingData{
+		firstName:     firstName,
+		lastName:      lastName,
+		email:         email,
+		ticketsBooked: tickets,
+	}
+
+	bookings = append(bookings, userData)
 	remainingTickets -= tickets
 	fmt.Printf("%v booked %v tickets, You will get confirmation to your mail %v \n", firstName+" "+lastName, tickets, email)
-
+	fmt.Printf("The details of customers booked till now: %v\n", userData)
 }
 
 func getFirstNames() []string {
 	var firstNames []string
 	for _, name := range bookings {
-		firstNames = append(firstNames, strings.Fields(name)[0])
+		firstNames = append(firstNames, name.firstName)
 	}
 	return firstNames
+}
+
+func sendTicket(firstName string, email string, tickets uint) {
+	time.Sleep(10 * time.Second)
+	var send_tickets = fmt.Sprintf("Sending %v tickets to %v through mail %v", tickets, firstName, email)
+	fmt.Println("###########")
+	fmt.Println(send_tickets)
+	fmt.Println("########")
+	wg.Done()
 }
